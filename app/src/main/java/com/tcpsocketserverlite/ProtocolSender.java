@@ -55,15 +55,9 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                 if (opcode == MainActivity.OPCODE_STC_SENDMESSAGE) {
                     String message = strings[1];
                     dataOutputStream.writeUTF(message);
-                }
-
-                /*
-                if (opcode == MainActivity.OPCODE_STC_SENDMESSAGE) {
-                    String message = strings[1];
-                    dataOutputStream.writeUTF(message);
 
                 } else if (opcode == MainActivity.OPCODE_STC_SELFDISCONNECT) {
-                    // Do nothing else
+                    // Do nothing
 
                 } else if (opcode == MainActivity.OPCODE_STC_VIEWUSERS) {
                     String usersOnlineStr = "Usuários online:";
@@ -78,10 +72,10 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                     }
                     dataOutputStream.writeUTF(usersOnlineStr);
 
-                } else if (opcode == MainActivity.OPCODE_STC_RENAMESELF) {
-                    // To do
+                } else if (opcode == MainActivity.OPCODE_STC_TOAST) {
+                    String message = strings[1];
+                    dataOutputStream.writeUTF(message);
                 }
-                */
 
                 // Close stream and socket connection
                 dataOutputStream.close();

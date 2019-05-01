@@ -28,8 +28,7 @@ public class MainActivity extends AppCompatActivity {
     public static final short OPCODE_STC_SENDMESSAGE = 1;
     public static final short OPCODE_STC_SELFDISCONNECT = 2; // Answer
     public static final short OPCODE_STC_VIEWUSERS = 3; // Answer
-    public static final short OPCODE_STC_RENAMESELF = 4;
-    public static final short OPCODE_STC_TOAST = 5;
+    public static final short OPCODE_STC_TOAST = 4;
 
     // Needed stuffs
     public static MainActivity mainActivity;
@@ -104,65 +103,14 @@ public class MainActivity extends AppCompatActivity {
 
                 // If elapsed time > DEFAULT_TIMETOKICK, kick user
                 if (time - user.lastActionTime > DEFAULT_TIMETOKICK) {
-                    logout(key);
+                    ProtocolSender protocolSender = new ProtocolSender(user);
+                    protocolSender.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
                 }
             }
         }
 
         // Online users
         onlineUsersEditText.setText(String.format("%d", usersMap.size()));
-    }
-
-    public void sendMessage(String username, String clientIP, String message, String targetUsername) {
-        User targetUser;
-        long lastActionTime = System.currentTimeMillis();
-
-        if (!usersMap.containsKey(targetUsername)) {
-            // Registering user into server data, without overwriting it
-            targetUser = new User(username, clientIP, lastActionTime);
-            MainActivity.usersMap.put(username, targetUser);
-        } else {
-            // Get user
-            targetUser = usersMap.get(username);
-        }
-        if (targetUser == null) {
-            return; // Never happens
-        }
-
-        // Other
-        final Calendar calendar = Calendar.getInstance(); // Last action time
-        calendar.setTimeInMillis(lastActionTime);
-        final int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        final int minute = calendar.get(Calendar.MINUTE);
-        final int day = calendar.get(Calendar.DAY_OF_MONTH);
-        final int month = calendar.get(Calendar.MONTH);
-        final int year = calendar.get(Calendar.YEAR);
-
-        final int port = sp.getInt("port", MainActivity.DEFAULT_PORT);
-
-        message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, message, hour, minute, day, month, year);
-
-        // Signal to client
-        ProtocolSender protocolSender = new ProtocolSender(targetUser);
-        protocolSender.execute(String.format("%d", OPCODE_STC_SENDMESSAGE), message);
-    }
-
-    public void logout(String username) {
-        // Get user
-        User user = usersMap.get(username);
-        if (user == null) {
-            return;
-        }
-
-        // Remove user from map
-        usersMap.remove(username);
-
-        // Signal to client
-        ProtocolSender protocolSender = new ProtocolSender(user);
-        protocolSender.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
-
-        // Server Log
-        Toast.makeText(this, String.format("%s encerrou a sessao.", user.username), Toast.LENGTH_SHORT).show();
     }
 
     public void onClickUpdateButton(View view) {
@@ -193,5 +141,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void log(String string) {
         logTextView.setText(String.format("%s%s", logTextView.getText(), string));
+        scrollLog();
     }
 }

@@ -46,7 +46,7 @@ public class ProtocolParser implements Runnable {
                 final String clientIP = dataInputStream.readUTF(); // Client IPv4
 
                 // Login user for any opcode received
-                User user;
+                final User user;
                 long lastActionTime = System.currentTimeMillis();
                 if (!MainActivity.mainActivity.usersMap.containsKey(username)) {
                     // Registering user into server data, without overwriting it
@@ -61,8 +61,8 @@ public class ProtocolParser implements Runnable {
                 }
 
                 if (opcode == MainActivity.OPCODE_CTS_SENDMESSAGE) {
-                    String param = dataInputStream.readUTF(); // param or targetUsername
-                    String message = dataInputStream.readUTF(); // message
+                    final String param = dataInputStream.readUTF(); // param or targetUsername
+                    String _message = dataInputStream.readUTF(); // message
 
                     // Other
                     final Calendar calendar = Calendar.getInstance(); // Last action time
@@ -73,117 +73,80 @@ public class ProtocolParser implements Runnable {
                     final int month = calendar.get(Calendar.MONTH);
                     final int year = calendar.get(Calendar.YEAR);
 
-                    message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, message, hour, minute, day, month, year);
+                    _message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, _message, hour, minute, day, month, year);
 
-                    if (param.equals("-all")) {
-                        ProtocolSender protocolSender = new ProtocolSender();
-                        protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
+                    final String message = _message;
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (param.equals("-all")) {
+                                ProtocolSender protocolSender = new ProtocolSender();
+                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
 
-                    } else {
-                        String targetUsername = param;
-                        User targetUser = MainActivity.mainActivity.usersMap.get(targetUsername);
-                        if (targetUser != null) {
-                            // Send message to a single user
-                            ProtocolSender protocolSender = new ProtocolSender(targetUser);
-                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
+                            } else {
+                                String targetUsername = param;
+                                User targetUser = MainActivity.mainActivity.usersMap.get(targetUsername);
+                                if (targetUser != null) {
+                                    // Send message to a single user
+                                    ProtocolSender protocolSender = new ProtocolSender(targetUser);
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
 
-                        } else {
-                            // Send error message
-                            ProtocolSender protocolSender = new ProtocolSender(user);
-                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' não existe.", targetUsername));
+                                } else {
+                                    // Send error message
+                                    ProtocolSender protocolSender = new ProtocolSender(user);
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' não existe.", targetUsername));
+                                }
+                            }
                         }
-                    }
+                    });
 
                 } else if (opcode == MainActivity.OPCODE_CTS_SELFDISCONNECT) {
+                    MainActivity.mainActivity.usersMap.remove(username);
+
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Not needed because we have nothing to change on client when disconnected
+                            // ProtocolSender protocolSender = new ProtocolSender(user);
+                            // protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SELFDISCONNECT));
+
+                            // Send success message (force sending this message)
+                            ProtocolSender protocolSender = new ProtocolSender(new User(username, clientIP, 0L));
+                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), "Desconectado com sucesso.");
+                        }
+                    });
 
                 } else if (opcode == MainActivity.OPCODE_CTS_VIEWUSERS) {
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            ProtocolSender protocolSender = new ProtocolSender(user);
+                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_VIEWUSERS));
+                        }
+                    });
 
                 } else if (opcode == MainActivity.OPCODE_CTS_RENAMESELF) {
+                    String oldUsername = username;
+                    final String newUsername = dataInputStream.readUTF();
 
-                }
-
-                /*
-                if (opcode == MainActivity.OPCODE_CTS_SELFCONNECT) {
-                    final String clientIP = dataInputStream.readUTF(); // Client IPv4
-
-                    // Execute in UI
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            MainActivity.mainActivity.login(username, clientIP);
-                        }
-                    });
+                            if (!MainActivity.mainActivity.usersMap.containsKey(newUsername)) {
+                                user.username = newUsername;
 
-                } else if (opcode == MainActivity.OPCODE_CTS_SELFDISCONNECT) {
-                    // Execute in UI
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            MainActivity.mainActivity.logout(username);
-                        }
-                    });
-
-                } else if (opcode == MainActivity.OPCODE_CTS_UPDATEDUSERSLIST) {
-                    // Execute in UI
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            User user = MainActivity.mainActivity.usersMap.get(username);
-                            if (user != null) {
+                                // Send success message
                                 ProtocolSender protocolSender = new ProtocolSender(user);
-                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_UPDATEDUSERSLIST));
-                            }
-                        }
-                    });
+                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), "Renoameado com sucesso.");
 
-                } else if (opcode == MainActivity.OPCODE_CTS_SENDMESSAGE) {
-                    System.out.println("recebeu");
-                    final User user = MainActivity.mainActivity.usersMap.get(username);
-                    if (user == null) {
-                        System.out.println("1");
-                        return;
-                    }
-                    System.out.println("2");
-
-                    final String targetUsername = dataInputStream.readUTF(); // Target username (or if is global chat)
-                    String _message = dataInputStream.readUTF(); // Message
-
-                    final boolean isGlobalChat = targetUsername.equals("[GLOBAL_CHAT]");
-                    final User targetUser = MainActivity.mainActivity.usersMap.get(targetUsername);
-                    if (!isGlobalChat && targetUser == null || isGlobalChat && MainActivity.mainActivity.usersMap.size() < 2) {
-                        System.out.println("3");
-                        return;
-                    }
-                    System.out.println("4");
-
-                    final Calendar calendar = Calendar.getInstance(); // Last action time
-                    calendar.setTimeInMillis(user.lastActionTime);
-                    final int hour = calendar.get(Calendar.HOUR_OF_DAY);
-                    final int minute = calendar.get(Calendar.MINUTE);
-                    final int day = calendar.get(Calendar.DAY_OF_MONTH);
-                    final int month = calendar.get(Calendar.MONTH);
-                    final int year = calendar.get(Calendar.YEAR);
-                    final String message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", user.ip, port, username, _message, hour, minute, day, month, year);
-
-                    // Execute in UI
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            ProtocolSender protocolSender;
-                            System.out.println("5");
-                            if (isGlobalChat) {
-                                System.out.println("6");
-                                protocolSender = new ProtocolSender(targetUsername);
                             } else {
-                                System.out.println("7");
-                                protocolSender = new ProtocolSender(targetUser);
+                                // Send error message
+                                ProtocolSender protocolSender = new ProtocolSender(user);
+                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' já existe.", newUsername));
                             }
-                            System.out.println("executou protocol");
-                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), username, targetUsername, message);
                         }
                     });
                 }
-                */
             }
 
             // Never happens because Server is always listening the Client
