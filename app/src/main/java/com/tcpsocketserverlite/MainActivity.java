@@ -20,17 +20,15 @@ public class MainActivity extends AppCompatActivity {
     public static final int DEFAULT_TIMETOKICK = 20000; // Has a copy on client
     // Opcodes (Operation Codes)
     // CTS - Client to Server
-    public static final short OPCODE_CTS_SELFCONNECT = 1; // Request
+    public static final short OPCODE_CTS_SENDMESSAGE = 1;
     public static final short OPCODE_CTS_SELFDISCONNECT = 2; // Request
-    public static final short OPCODE_CTS_UPDATEDUSERSLIST = 3; // Request
-    public static final short OPCODE_CTS_SENDMESSAGE = 4;
+    public static final short OPCODE_CTS_VIEWUSERS = 3; // Request
+    public static final short OPCODE_CTS_RENAMESELF = 4;
     // STC - Server to Client
-    public static final short OPCODE_STC_SELFCONNECT = 1; // Answer
+    public static final short OPCODE_STC_SENDMESSAGE = 1;
     public static final short OPCODE_STC_SELFDISCONNECT = 2; // Answer
-    public static final short OPCODE_STC_UPDATEDUSERSLIST = 3; // Answer
-    public static final short OPCODE_STC_SENDMESSAGE = 4;
-    public static final short OPCODE_STC_FRIENDLOGGEDIN = 5; // Broadcast to friends that self logged in
-    public static final short OPCODE_STC_FRIENDLOGGEDOUT = 6; // Broadcast to friends that self logged out
+    public static final short OPCODE_STC_VIEWUSERS = 3; // Answer
+    public static final short OPCODE_STC_RENAMESELF = 4;
 
     // Needed stuffs
     public static MainActivity mainActivity;
@@ -57,8 +55,8 @@ public class MainActivity extends AppCompatActivity {
         spe = sp.edit();
         // Server listening client
         if (protocolParserThread == null) {
-            // protocolParserThread = new Thread(new ProtocolParser(this));
-            // protocolParserThread.start();
+            protocolParserThread = new Thread(new ProtocolParser(this));
+            protocolParserThread.start();
         }
         // Executes periodically, once per second
         if (ticksThread == null) {
@@ -114,30 +112,21 @@ public class MainActivity extends AppCompatActivity {
         onlineUsersEditText.setText(String.format("%d", usersMap.size()));
     }
 
-    public void login(String username, String clientIP) {
-        /*
-        User user;
+    public void sendMessage(String username, String clientIP, String message, String targetUsername) {
+        User targetUser;
         long lastActionTime = System.currentTimeMillis();
 
-        // Signal to client of friends
-        ProtocolSender protocolSender1 = new ProtocolSender(username);
-        protocolSender1.execute(String.format("%d", MainActivity.OPCODE_STC_FRIENDLOGGEDIN), username);
-
-        if (!usersMap.containsKey(username)) {
+        if (!usersMap.containsKey(targetUsername)) {
             // Registering user into server data, without overwriting it
-            user = new User(username, clientIP, lastActionTime);
-            MainActivity.usersMap.put(username, user);
+            targetUser = new User(username, clientIP, lastActionTime);
+            MainActivity.usersMap.put(username, targetUser);
         } else {
             // Get user
-            user = usersMap.get(username);
+            targetUser = usersMap.get(username);
         }
-        if (user == null) {
+        if (targetUser == null) {
             return; // Never happens
         }
-
-        // Signal to client
-        ProtocolSender protocolSender2 = new ProtocolSender(user);
-        protocolSender2.execute(String.format("%d", OPCODE_STC_SELFCONNECT));
 
         // Other
         final Calendar calendar = Calendar.getInstance(); // Last action time
@@ -149,13 +138,12 @@ public class MainActivity extends AppCompatActivity {
         final int year = calendar.get(Calendar.YEAR);
 
         final int port = sp.getInt("port", MainActivity.DEFAULT_PORT);
-        //Toast.makeText(context, String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, message, hour, minute, day, month, year), Toast.LENGTH_LONG).show();
-        //Toast.makeText(context, String.format("%s:%s/~%s : %02d:%02d-%02d/%02d/%04d", clientIP, port, username, hour, minute, day, month, year), Toast.LENGTH_LONG).show();
-        //System.out.println(String.format("%s:%s/~%s : %02d:%02d-%02d/%02d/%04d", clientIP, port, username, hour, minute, day, month, year));
 
-        // Server Log
-        Toast.makeText(getApplicationContext(), String.format("%s iniciou a sessao.", username), Toast.LENGTH_SHORT).show();
-        */
+        message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, message, hour, minute, day, month, year);
+
+        // Signal to client
+        ProtocolSender protocolSender = new ProtocolSender(targetUser);
+        protocolSender.execute(String.format("%d", OPCODE_STC_SENDMESSAGE), message);
     }
 
     public void logout(String username) {
@@ -168,18 +156,12 @@ public class MainActivity extends AppCompatActivity {
         // Remove user from map
         usersMap.remove(username);
 
-        /*
         // Signal to client
-        ProtocolSender protocolSender1 = new ProtocolSender(user);
-        protocolSender1.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
-
-        // Signal to client of friends
-        ProtocolSender protocolSender2 = new ProtocolSender(username);
-        protocolSender2.execute(String.format("%d", MainActivity.OPCODE_STC_FRIENDLOGGEDOUT), username);
+        ProtocolSender protocolSender = new ProtocolSender(user);
+        protocolSender.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
 
         // Server Log
         Toast.makeText(this, String.format("%s encerrou a sessao.", user.username), Toast.LENGTH_SHORT).show();
-        */
     }
 
     public void onClickUpdateButton(View view) {
@@ -206,5 +188,9 @@ public class MainActivity extends AppCompatActivity {
     }
     public void scrollLog() {
         scrollLog(true);
+    }
+
+    public void log(String string) {
+        logTextView.setText(String.format("%s%s", logTextView.getText(), string));
     }
 }
