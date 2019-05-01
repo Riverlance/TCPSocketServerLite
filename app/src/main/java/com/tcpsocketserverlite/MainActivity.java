@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     // Constants
     public static final String APP_NAME = "TCP Socket Server";
     public static final int DEFAULT_PORT = 7171;
-    public static final int DEFAULT_TIMETOKICK = 20000; // Has a copy on client
+    public static final int DEFAULT_TIMETOKICK = 120000; // Has a copy on client
     // Opcodes (Operation Codes)
     // CTS - Client to Server
     public static final short OPCODE_CTS_SENDMESSAGE = 1;
@@ -29,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     public static final short OPCODE_STC_SELFDISCONNECT = 2; // Answer
     public static final short OPCODE_STC_VIEWUSERS = 3; // Answer
     public static final short OPCODE_STC_RENAMESELF = 4;
+    public static final short OPCODE_STC_TOAST = 5;
 
     // Needed stuffs
     public static MainActivity mainActivity;

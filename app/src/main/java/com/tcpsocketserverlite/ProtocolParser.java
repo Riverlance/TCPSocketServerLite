@@ -43,8 +43,56 @@ public class ProtocolParser implements Runnable {
                 // Basic data
                 short opcode = dataInputStream.readShort(); // Opcode Client to Server
                 final String username = dataInputStream.readUTF(); // Username
+                final String clientIP = dataInputStream.readUTF(); // Client IPv4
+
+                // Login user for any opcode received
+                User user;
+                long lastActionTime = System.currentTimeMillis();
+                if (!MainActivity.mainActivity.usersMap.containsKey(username)) {
+                    // Registering user into server data, without overwriting it
+                    user = new User(username, clientIP, lastActionTime);
+                    MainActivity.usersMap.put(username, user);
+                } else {
+                    // Get user
+                    user = MainActivity.mainActivity.usersMap.get(username);
+                }
+                if (user == null) {
+                    return; // Never happens
+                }
 
                 if (opcode == MainActivity.OPCODE_CTS_SENDMESSAGE) {
+                    String param = dataInputStream.readUTF(); // param or targetUsername
+                    String message = dataInputStream.readUTF(); // message
+
+                    // Other
+                    final Calendar calendar = Calendar.getInstance(); // Last action time
+                    calendar.setTimeInMillis(lastActionTime);
+                    final int hour = calendar.get(Calendar.HOUR_OF_DAY);
+                    final int minute = calendar.get(Calendar.MINUTE);
+                    final int day = calendar.get(Calendar.DAY_OF_MONTH);
+                    final int month = calendar.get(Calendar.MONTH);
+                    final int year = calendar.get(Calendar.YEAR);
+
+                    message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, message, hour, minute, day, month, year);
+
+                    if (param.equals("-all")) {
+                        ProtocolSender protocolSender = new ProtocolSender();
+                        protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
+
+                    } else {
+                        String targetUsername = param;
+                        User targetUser = MainActivity.mainActivity.usersMap.get(targetUsername);
+                        if (targetUser != null) {
+                            // Send message to a single user
+                            ProtocolSender protocolSender = new ProtocolSender(targetUser);
+                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
+
+                        } else {
+                            // Send error message
+                            ProtocolSender protocolSender = new ProtocolSender(user);
+                            protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' não existe.", targetUsername));
+                        }
+                    }
 
                 } else if (opcode == MainActivity.OPCODE_CTS_SELFDISCONNECT) {
 

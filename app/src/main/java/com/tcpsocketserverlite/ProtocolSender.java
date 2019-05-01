@@ -12,8 +12,6 @@ import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params, Progress, Result>
-    String ignoredUsername = null;
-
     // Needed stuffs
     private SharedPreferences sp;
     // Allows to use UI within this background task
@@ -29,12 +27,10 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
     }
 
     // To send for multiple users
-    public ProtocolSender(String ignoredUsername) {
-        this.users = users;
-        this.ignoredUsername = ignoredUsername;
+    public ProtocolSender() {
         // Needed stuffs
         sp = MainActivity.mainActivity.getSharedPreferences(MainActivity.APP_NAME, Context.MODE_PRIVATE);
-        users = MainActivity.usersMap;
+        users = MainActivity.mainActivity.usersMap;
     }
 
     @Override
@@ -47,11 +43,6 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
             String targetKey = targetEntry.getKey();
             User targetUser = targetEntry.getValue();
 
-            // Ignore self username (skip to next)
-            if (targetKey.equals(ignoredUsername)) {
-                continue;
-            }
-
             try {
                 // Socket connection and stream
                 Socket socket = new Socket(targetUser.ip, port);
@@ -61,6 +52,12 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                 dataOutputStream.writeShort(opcode);
                 dataOutputStream.writeUTF(targetUser.username);
 
+                if (opcode == MainActivity.OPCODE_STC_SENDMESSAGE) {
+                    String message = strings[1];
+                    dataOutputStream.writeUTF(message);
+                }
+
+                /*
                 if (opcode == MainActivity.OPCODE_STC_SENDMESSAGE) {
                     String message = strings[1];
                     dataOutputStream.writeUTF(message);
@@ -84,6 +81,7 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                 } else if (opcode == MainActivity.OPCODE_STC_RENAMESELF) {
                     // To do
                 }
+                */
 
                 // Close stream and socket connection
                 dataOutputStream.close();
