@@ -20,10 +20,14 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
     ConcurrentHashMap<String, User> users = new ConcurrentHashMap<>(); // Thread-safe
 
     // To send directly for a single user
-    public ProtocolSender(User user) {
+    public ProtocolSender(User... users) {
         // Needed stuffs
         sp = MainActivity.mainActivity.getSharedPreferences(MainActivity.APP_NAME, Context.MODE_PRIVATE);
-        users.put(user.username, user);
+
+        for (int i = 0; i < users.length; i++) {
+            User user = users[i];
+            this.users.put(user.username, user);
+        }
         handler = new Handler();
     }
 

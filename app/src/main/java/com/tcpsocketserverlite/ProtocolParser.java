@@ -105,7 +105,7 @@ public class ProtocolParser implements Runnable {
                                 User targetUser = MainActivity.mainActivity.usersMap.get(targetUsername);
                                 if (targetUser != null) {
                                     // Send message to a single user
-                                    ProtocolSender protocolSender = new ProtocolSender(targetUser);
+                                    ProtocolSender protocolSender = new ProtocolSender(targetUser, user); // Send message to both users (target and sender)
                                     protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SENDMESSAGE), message);
 
                                 } else {
