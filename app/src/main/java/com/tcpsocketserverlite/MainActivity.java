@@ -15,7 +15,7 @@ public class MainActivity extends AppCompatActivity {
     // Constants
     public static final String APP_NAME = "TCP Socket Server";
     public static final int DEFAULT_PORT = 7171;
-    public static final int DEFAULT_TIMETOKICK = 30000; // Has a copy on client
+    public static final int DEFAULT_TIMETOKICK = 60000; // Has a copy on client
     // Opcodes (Operation Codes)
     // CTS - Client to Server
     public static final short OPCODE_CTS_SENDMESSAGE = 1;
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         // Each 5 seconds
         if (timeInSec % 5 == 0) {
             for (ConcurrentHashMap.Entry<String, User> entry : usersMap.entrySet()) {
-                String key = entry.getKey();
+                // String key = entry.getKey();
                 User user = entry.getValue();
 
                 // If elapsed time > DEFAULT_TIMETOKICK, kick user

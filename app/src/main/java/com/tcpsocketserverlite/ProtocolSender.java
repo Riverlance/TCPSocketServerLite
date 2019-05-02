@@ -71,7 +71,7 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                     String usersOnlineStr = "Usuários online:";
                     if (MainActivity.usersMap.size() > 0) {
                         for (ConcurrentHashMap.Entry<String, User> entry : MainActivity.usersMap.entrySet()) {
-                            String key = entry.getKey();
+                            // String key = entry.getKey();
                             User user = entry.getValue();
                             usersOnlineStr += String.format("\n%s", user.username);
                         }
@@ -98,7 +98,7 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        MainActivity.mainActivity.log(String.format("Cliente nao encontrado ou ocupado.\nIP: %s (%d)\nUser: %s", targetUser.ip, port, targetUser.username));
+                        MainActivity.mainActivity.log(String.format("Cliente não encontrado ou ocupado.\nIP: %s (%d)\nUser: %s", targetUser.ip, port, targetUser.username));
                     }
                 });
 

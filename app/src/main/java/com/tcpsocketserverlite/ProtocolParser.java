@@ -72,7 +72,7 @@ public class ProtocolParser implements Runnable {
                     }
                 }
 
-                // Update lastActionTime
+                // Update lastActionTime for any opcode
                 _user.lastActionTime = lastActionTime;
 
                 final User user = _user;
@@ -90,7 +90,7 @@ public class ProtocolParser implements Runnable {
                     final int month = calendar.get(Calendar.MONTH);
                     final int year = calendar.get(Calendar.YEAR);
 
-                    _message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, username, _message, hour, minute, day, month, year);
+                    _message = String.format("%s:%s/~%s : %s %02d:%02d-%02d/%02d/%04d", clientIP, port, user.username, _message, hour, minute, day, month, year);
 
                     final String message = _message;
                     handler.post(new Runnable() {
@@ -111,24 +111,24 @@ public class ProtocolParser implements Runnable {
                                 } else {
                                     // Send error message
                                     ProtocolSender protocolSender = new ProtocolSender(user);
-                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usu·rio '%s' n„o existe.", targetUsername));
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usu√°rio '%s' n√£o existe.", targetUsername));
                                 }
                             }
                         }
                     });
 
                 } else if (opcode == MainActivity.OPCODE_CTS_SELFDISCONNECT) {
-                    MainActivity.mainActivity.usersMap.remove(username);
+                    MainActivity.mainActivity.usersMap.remove(user.username);
 
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            // Not needed because we have nothing to change on client when disconnected
+                            // Not needed because has nothing to change on client side when disconnected
                             // ProtocolSender protocolSender = new ProtocolSender(user);
                             // protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_SELFDISCONNECT));
 
                             // Send success message (force sending this message)
-                            ProtocolSender protocolSender = new ProtocolSender(new User(username, clientIP, 0L));
+                            ProtocolSender protocolSender = new ProtocolSender(new User(user.username, clientIP, 0L));
                             protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), "Desconectado com sucesso.");
                         }
                     });
@@ -151,8 +151,10 @@ public class ProtocolParser implements Runnable {
                         public void run() {
                             if (getUser) {
                                 if (!MainActivity.mainActivity.usersMap.containsKey(newUsername)) {
+                                    // Remove old
                                     MainActivity.mainActivity.usersMap.remove(user.username);
 
+                                    // Add new
                                     User newUser = user;
                                     newUser.username = newUsername;
                                     MainActivity.mainActivity.usersMap.put(newUsername, newUser);
@@ -164,7 +166,7 @@ public class ProtocolParser implements Runnable {
                                 } else {
                                     // Send error message
                                     ProtocolSender protocolSender = new ProtocolSender(user);
-                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usu·rio '%s' j· existe.", newUsername));
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Nome de usu√°rio '%s' j√° em uso.", newUsername));
                                 }
 
                             } else {
