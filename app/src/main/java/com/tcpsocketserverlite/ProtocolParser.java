@@ -45,20 +45,37 @@ public class ProtocolParser implements Runnable {
                 final String username = dataInputStream.readUTF(); // Username
                 final String clientIP = dataInputStream.readUTF(); // Client IPv4
 
-                // Login user for any opcode received
-                final User user;
+                User _user = null;
                 long lastActionTime = System.currentTimeMillis();
-                if (!MainActivity.mainActivity.usersMap.containsKey(username)) {
-                    // Registering user into server data, without overwriting it
-                    user = new User(username, clientIP, lastActionTime);
-                    MainActivity.usersMap.put(username, user);
-                } else {
-                    // Get user
-                    user = MainActivity.mainActivity.usersMap.get(username);
+
+                boolean _getUser = true;
+                String _newUsername = "";
+                if (opcode == MainActivity.OPCODE_CTS_RENAMESELF) {
+                    _newUsername = dataInputStream.readUTF();
+
+                    if (username.equals("")) {
+                        _user = new User(_newUsername, clientIP, lastActionTime);
+                        MainActivity.usersMap.put(_newUsername, _user);
+                        _getUser = false;
+                    }
                 }
-                if (user == null) {
-                    return; // Never happens
+
+                if (_getUser) {
+                    // Login user for any opcode received (except opcode of rename)
+                    if (!MainActivity.mainActivity.usersMap.containsKey(username)) {
+                        // Registering user into server data, without overwriting it
+                        _user = new User(username, clientIP, lastActionTime);
+                        MainActivity.usersMap.put(username, _user);
+                    } else {
+                        // Get user
+                        _user = MainActivity.mainActivity.usersMap.get(username);
+                    }
                 }
+
+                // Update lastActionTime
+                _user.lastActionTime = lastActionTime;
+
+                final User user = _user;
 
                 if (opcode == MainActivity.OPCODE_CTS_SENDMESSAGE) {
                     final String param = dataInputStream.readUTF(); // param or targetUsername
@@ -126,23 +143,34 @@ public class ProtocolParser implements Runnable {
                     });
 
                 } else if (opcode == MainActivity.OPCODE_CTS_RENAMESELF) {
-                    String oldUsername = username;
-                    final String newUsername = dataInputStream.readUTF();
+                    final String newUsername = _newUsername;
+                    final boolean getUser = _getUser;
 
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            if (!MainActivity.mainActivity.usersMap.containsKey(newUsername)) {
-                                user.username = newUsername;
+                            if (getUser) {
+                                if (!MainActivity.mainActivity.usersMap.containsKey(newUsername)) {
+                                    MainActivity.mainActivity.usersMap.remove(user.username);
 
-                                // Send success message
-                                ProtocolSender protocolSender = new ProtocolSender(user);
-                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), "Renoameado com sucesso.");
+                                    User newUser = user;
+                                    newUser.username = newUsername;
+                                    MainActivity.mainActivity.usersMap.put(newUsername, newUser);
+
+                                    // Send success message
+                                    ProtocolSender protocolSender = new ProtocolSender(newUser);
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_RENAMESELF), newUser.username);
+
+                                } else {
+                                    // Send error message
+                                    ProtocolSender protocolSender = new ProtocolSender(user);
+                                    protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' já existe.", newUsername));
+                                }
 
                             } else {
-                                // Send error message
+                                // Send success message
                                 ProtocolSender protocolSender = new ProtocolSender(user);
-                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_TOAST), String.format("Usuário '%s' já existe.", newUsername));
+                                protocolSender.execute(String.format("%d", MainActivity.OPCODE_STC_RENAMESELF), user.username);
                             }
                         }
                     });

@@ -24,24 +24,26 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
         // Needed stuffs
         sp = MainActivity.mainActivity.getSharedPreferences(MainActivity.APP_NAME, Context.MODE_PRIVATE);
         users.put(user.username, user);
+        handler = new Handler();
     }
 
     // To send for multiple users
     public ProtocolSender() {
         // Needed stuffs
         sp = MainActivity.mainActivity.getSharedPreferences(MainActivity.APP_NAME, Context.MODE_PRIVATE);
-        users = MainActivity.mainActivity.usersMap;
+        users = MainActivity.usersMap;
+        handler = new Handler();
     }
 
     @Override
     protected String doInBackground(String... strings) {
         // Params to connect to client(s)
-        final int port = sp.getInt("port", MainActivity.DEFAULT_PORT);
         short opcode = Short.parseShort(strings[0]);
+        final int port = sp.getInt("port", MainActivity.DEFAULT_PORT);
 
         for (ConcurrentHashMap.Entry<String, User> targetEntry : users.entrySet()) {
-            String targetKey = targetEntry.getKey();
-            User targetUser = targetEntry.getValue();
+            final String targetKey = targetEntry.getKey();
+            final User targetUser = targetEntry.getValue();
 
             try {
                 // Socket connection and stream
@@ -57,12 +59,18 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                     dataOutputStream.writeUTF(message);
 
                 } else if (opcode == MainActivity.OPCODE_STC_SELFDISCONNECT) {
-                    // Do nothing
+                    MainActivity.usersMap.remove(targetKey);
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.mainActivity.updateOnlineUsersSize();
+                        }
+                    });
 
                 } else if (opcode == MainActivity.OPCODE_STC_VIEWUSERS) {
                     String usersOnlineStr = "Usuários online:";
-                    if (MainActivity.mainActivity.usersMap.size() > 0) {
-                        for (ConcurrentHashMap.Entry<String, User> entry : MainActivity.mainActivity.usersMap.entrySet()) {
+                    if (MainActivity.usersMap.size() > 0) {
+                        for (ConcurrentHashMap.Entry<String, User> entry : MainActivity.usersMap.entrySet()) {
                             String key = entry.getKey();
                             User user = entry.getValue();
                             usersOnlineStr += String.format("\n%s", user.username);
@@ -71,6 +79,10 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
                         usersOnlineStr += "\nNão há usuários online.";
                     }
                     dataOutputStream.writeUTF(usersOnlineStr);
+
+                } else if (opcode == MainActivity.OPCODE_STC_RENAMESELF) {
+                    String newUsername = strings[1];
+                    dataOutputStream.writeUTF(newUsername);
 
                 } else if (opcode == MainActivity.OPCODE_STC_TOAST) {
                     String message = strings[1];
@@ -83,7 +95,12 @@ public class ProtocolSender extends AsyncTask<String, Void, String> { // <Params
 
             } catch (ConnectException e) {
                 // Log
-                MainActivity.mainActivity.log(String.format("Cliente nao encontrado ou ocupado.\nIP: %s (%d)\nUser: %s", targetUser.ip, port, targetUser.username));
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        MainActivity.mainActivity.log(String.format("Cliente nao encontrado ou ocupado.\nIP: %s (%d)\nUser: %s", targetUser.ip, port, targetUser.username));
+                    }
+                });
 
             } catch (IOException e) {
                 e.printStackTrace();

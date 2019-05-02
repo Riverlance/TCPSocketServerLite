@@ -8,16 +8,14 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MainActivity extends AppCompatActivity {
     // Constants
     public static final String APP_NAME = "TCP Socket Server";
     public static final int DEFAULT_PORT = 7171;
-    public static final int DEFAULT_TIMETOKICK = 120000; // Has a copy on client
+    public static final int DEFAULT_TIMETOKICK = 30000; // Has a copy on client
     // Opcodes (Operation Codes)
     // CTS - Client to Server
     public static final short OPCODE_CTS_SENDMESSAGE = 1;
@@ -28,7 +26,8 @@ public class MainActivity extends AppCompatActivity {
     public static final short OPCODE_STC_SENDMESSAGE = 1;
     public static final short OPCODE_STC_SELFDISCONNECT = 2; // Answer
     public static final short OPCODE_STC_VIEWUSERS = 3; // Answer
-    public static final short OPCODE_STC_TOAST = 4;
+    public static final short OPCODE_STC_RENAMESELF = 4;
+    public static final short OPCODE_STC_TOAST = 5;
 
     // Needed stuffs
     public static MainActivity mainActivity;
@@ -110,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Online users
-        onlineUsersEditText.setText(String.format("%d", usersMap.size()));
+        updateOnlineUsersSize();
     }
 
     public void onClickUpdateButton(View view) {
@@ -140,7 +139,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void log(String string) {
-        logTextView.setText(String.format("%s%s", logTextView.getText(), string));
+        logTextView.setText(String.format("%s\n%s", logTextView.getText(), string));
         scrollLog();
+    }
+
+    public void updateOnlineUsersSize() {
+        onlineUsersEditText.setText(String.format("%d", usersMap.size()));
     }
 }
