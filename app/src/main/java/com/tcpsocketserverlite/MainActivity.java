@@ -102,8 +102,11 @@ public class MainActivity extends AppCompatActivity {
 
                 // If elapsed time > DEFAULT_TIMETOKICK, kick user
                 if (time - user.lastActionTime > DEFAULT_TIMETOKICK) {
-                    ProtocolSender protocolSender = new ProtocolSender(user);
-                    protocolSender.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
+                    ProtocolSender protocolSender1 = new ProtocolSender(user);
+                    protocolSender1.execute(String.format("%d", OPCODE_STC_SELFDISCONNECT));
+
+                    ProtocolSender protocolSender2 = new ProtocolSender(user);
+                    protocolSender2.execute(String.format("%d", OPCODE_STC_TOAST), "Desconectado do servidor por inatividade.");
                 }
             }
         }
